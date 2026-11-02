@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Panel — CreamixDS</title>
+  <meta name="theme-color" content="#09090c">
+  <link rel="icon" type="image/png" href="logo-creamixds.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .tabla-wrap { overflow-x: auto; border-radius: 16px; }
+    .tabla-wrap table { min-width: 640px; }
+    td.corto { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .modal .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modal .field { margin-bottom: 12px; }
+    .modal textarea { min-height: 110px; }
+    .foot .izq { margin-right: auto; }
+    .sub { color: var(--muted); font-size: 13px; margin: -8px 0 16px; }
+    #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 80; min-width: 260px; max-width: 90vw; }
+    aside .quien { color: var(--muted); font-size: 12px; padding: 14px 12px 0; word-break: break-all; }
+    @media (max-width: 800px) { main { padding: 16px; } .modal .row { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="bg-grid" aria-hidden="true"></div>
+
+  <!-- Ingreso -->
+  <div class="login-wrap" id="pantalla-login">
+    <div class="modal login-modal login">
+      <img src="logo-creamixds.png" alt="CreamixDS" width="113" height="52" style="margin-bottom:12px">
+      <h2>Panel de administración</h2>
+      <p>Ingresá con tu cuenta de Google autorizada.</p>
+      <div id="g-btn"></div>
+      <div id="acceso-msg"></div>
+      <div class="foot"><a class="btn secondary sm" href="./">Volver al sitio</a></div>
+    </div>
+  </div>
+
+  <!-- Panel -->
+  <div class="layout hidden" id="pantalla-panel">
+    <aside>
+      <a class="brand" href="./"><img src="logo-creamixds.png" alt="CreamixDS" width="99" height="46"></a>
+      <a href="#mensajes" class="nav" data-vista="mensajes">Mensajes <span class="badge" id="badge-nuevos" hidden>0</span></a>
+      <a href="#servicios" class="nav" data-vista="servicios">Servicios</a>
+      <a href="./" class="nav" target="_blank" rel="noopener">Ver sitio ↗</a>
+      <a href="#" class="nav" id="btn-salir">Salir</a>
+      <div class="quien" id="quien"></div>
+    </aside>
+    <main>
+      <!-- Mensajes -->
+      <section id="vista-mensajes" class="hidden">
+        <div class="page-head">
+          <h1>Mensajes</h1>
+          <button class="btn secondary sm" type="button" data-recargar>Actualizar</button>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="n" id="st-total">0</div><div class="l">Recibidos</div></div>
+          <div class="stat"><div class="n" id="st-nuevos">0</div><div class="l">Sin leer</div></div>
+          <div class="stat"><div class="n" id="st-pend">0</div><div class="l">Sin responder</div></div>
+        </div>
+        <div class="toolbar">
+          <input type="search" id="m-buscar" placeholder="Buscar nombre, email o texto…">
+          <select id="m-estado">
+            <option value="">Todos los estados</option>
+            <option value="nuevo">Nuevo</option>
+            <option value="en_proceso">En proceso</option>
+            <option value="respondido">Respondido</option>
+            <option value="archivado">Archivado</option>
+          </select>
+        </div>
+        <div class="tabla-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Nombre</th><th>Servicio</th><th>Asunto</th><th>Estado</th></tr></thead>
+            <tbody id="m-filas"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Servicios -->
+      <section id="vista-servicios" class="hidden">
+        <div class="page-head">
+          <h1>Servicios</h1>
+          <div class="actions" style="margin:0">
+            <button class="btn secondary sm" type="button" data-recargar>Actualizar</button>
+            <button class="btn sm" type="button" id="btn-nuevo">+ Nuevo servicio</button>
+          </div>
+        </div>
+        <p class="sub">Los servicios activos aparecen en la web en este orden. Desactivá uno para ocultarlo sin borrarlo.</p>
+        <div class="tabla-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Nombre</th><th>Categoría</th><th>Precio</th><th>Duración</th><th>Estado</th></tr></thead>
+            <tbody id="s-filas"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal: mensaje -->
+  <div class="modal-bg" id="modal-mensaje">
+    <div class="modal">
+      <h2 id="mm-titulo">Mensaje</h2>
+      <div class="kv" id="mm-datos"></div>
+      <div class="msg-box" id="mm-texto"></div>
+      <div class="row" style="margin-top:14px">
+        <div class="field"><label>Estado</label>
+          <select id="mm-estado">
+            <option value="nuevo">Nuevo</option>
+            <option value="en_proceso">En proceso</option>
+            <option value="respondido">Respondido</option>
+            <option value="archivado">Archivado</option>
+          </select>
+        </div>
+        <div class="field"><label>Respondido</label><div id="mm-respondido" style="padding-top:10px;color:var(--muted)">—</div></div>
+      </div>
+      <div class="field"><label>Notas internas (no las ve el cliente)</label><textarea id="mm-notas" maxlength="5000"></textarea></div>
+      <div class="field"><label>Respuesta al cliente</label><textarea id="mm-respuesta" maxlength="10000" placeholder="Hola …, gracias por escribirnos."></textarea></div>
+      <div class="foot">
+        <button class="btn danger sm izq" type="button" id="mm-borrar">Borrar</button>
+        <button class="btn secondary sm" type="button" data-cerrar>Cerrar</button>
+        <button class="btn secondary sm" type="button" id="mm-guardar">Guardar</button>
+        <button class="btn sm" type="button" id="mm-enviar">Enviar respuesta por mail</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: servicio -->
+  <div class="modal-bg" id="modal-servicio">
+    <div class="modal">
+      <h2 id="ms-titulo">Servicio</h2>
+      <form id="form-servicio">
+        <div class="field"><label>Nombre *</label><input name="nombre" required maxlength="150"></div>
+        <div class="field"><label>Descripción</label><textarea name="descripcion" maxlength="2000"></textarea></div>
+        <div class="row">
+          <div class="field"><label>Categoría</label><input name="categoria" list="categorias" maxlength="80"></div>
+          <div class="field"><label>Duración</label><input name="duracion" maxlength="80" placeholder="Ej: 3 semanas, Mensual"></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Precio (0 = "A consultar")</label><input name="precio" type="number" min="0" step="any"></div>
+          <div class="field"><label>Moneda</label><select name="moneda"><option>ARS</option><option>USD</option></select></div>
+        </div>
+        <div class="row">
+          <div class="field"><label>Orden en la web</label><input name="orden" type="number" step="1"></div>
+          <div class="field"><label>&nbsp;</label><label class="check"><input type="checkbox" name="activo"> Visible en la web</label></div>
+        </div>
+        <div class="field"><label>Imagen (link https, opcional)</label><input name="imagen_url" type="url" placeholder="https://…"></div>
+        <datalist id="categorias"></datalist>
+        <div class="foot">
+          <button class="btn danger sm izq" type="button" id="ms-borrar">Borrar</button>
+          <button class="btn secondary sm" type="button" data-cerrar>Cancelar</button>
+          <button class="btn sm" type="submit" id="ms-guardar">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+<script>
+// ================== CONFIGURACIÓN ==================
+const API_URL = 'https://script.google.com/macros/s/AKfycbzcXjUMtLYcUlwRluieLjvYBkGrIcIPAoJuUQPORFYHnwGOfO9PJ6dUy-1sifI9YmVq/exec';
+const GOOGLE_CLIENT_ID = '411887691042-vdh480tiln7ome9si22nrsm75tv2993l.apps.googleusercontent.com';
+// ===================================================
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const esSi = (v) => v === true || String(v).toUpperCase() === 'TRUE';
+const fecha = (v) => { if (!v) return '—'; const d = new Date(v); return isNaN(d) ? esc(v) : d.toLocaleString('es-AR', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' }); };
+const precio = (n, m) => Number(n) > 0 ? new Intl.NumberFormat('es-AR', { style:'currency', currency: m || 'ARS', maximumFractionDigits: 0 }).format(n) : 'A consultar';
+const ESTADOS = { nuevo: 'Nuevo', en_proceso: 'En proceso', respondido: 'Respondido', archivado: 'Archivado' };
+const estadoDe = (m) => ESTADOS[m.estado] ? m.estado : (esSi(m.leido) ? 'en_proceso' : 'nuevo');
+
+let datos = { servicios: [], mensajes: [] };
+let actual = null;   // registro abierto en un modal
+
+// ---------- sesión (token de Google, dura ~1 hora) ----------
+const KEY = 'cmx_admin_token';
+function sesion() {
+  try { const s = JSON.parse(sessionStorage.getItem(KEY)); return s && s.exp * 1000 > Date.now() + 60000 ? s : null; } catch (e) { return null; }
+}
+function guardarSesion(token) {
+  const p = JSON.parse(decodeURIComponent(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+  const s = { token, exp: p.exp, email: p.email };
+  try { sessionStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+  return s;
+}
+function cerrarSesion(msg) {
+  try { sessionStorage.removeItem(KEY); } catch (e) {}
+  try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+  $('pantalla-panel').classList.add('hidden');
+  $('pantalla-login').classList.remove('hidden');
+  document.querySelectorAll('.modal-bg.open').forEach(m => m.classList.remove('open'));
+  $('acceso-msg').innerHTML = msg ? `<div class="alert err">${esc(msg)}</div>` : '';
+  mostrarBotonGoogle();
+}
+
+let gisListo = false;
+function mostrarBotonGoogle() {
+  const pintar = () => {
+    if (!gisListo) { google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: (r) => entrar(guardarSesion(r.credential)), auto_select: true }); gisListo = true; }
+    google.accounts.id.renderButton($('g-btn'), { theme: 'filled_black', size: 'large', shape: 'pill', text: 'signin_with', locale: 'es' });
+  };
+  if (window.google && google.accounts && google.accounts.id) return pintar();
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client'; s.async = true; s.onload = pintar;
+  s.onerror = () => { $('acceso-msg').innerHTML = '<div class="alert err">No se pudo cargar el acceso con Google.</div>'; };
+  document.head.appendChild(s);
+}
+
+async function api(op, extra) {
+  const s = sesion();
+  if (!s) { cerrarSesion('La sesión venció. Volvé a ingresar.'); throw new Error('Sesión vencida'); }
+  let json;
+  try {
+    const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ admin: true, op, token: s.token }, extra || {})) });
+    json = await res.json();
+  } catch (e) { throw new Error('No hay conexión con el servidor. Probá de nuevo.'); }
+  if (!json.ok) {
+    if (json.auth) { cerrarSesion(json.error); }
+    else if (!('auth' in json)) throw new Error('Falta instalar Admin.gs en Apps Script (el servidor respondió: ' + (json.error || 'error') + ').');
+    throw new Error(json.error || 'Error');
+  }
+  return json;
+}
+
+function aviso(texto, tipo) {
+  $('toast').innerHTML = `<div class="alert ${tipo || 'ok'}">${esc(texto)}</div>`;
+  clearTimeout(aviso.t); aviso.t = setTimeout(() => { $('toast').innerHTML = ''; }, 3500);
+}
+async function ocupado(btn, fn) {
+  const txt = btn.textContent; btn.disabled = true; btn.textContent = 'Guardando…';
+  try { return await fn(); } catch (e) { aviso(e.message, 'err'); } finally { btn.disabled = false; btn.textContent = txt; }
+}
+
+// ---------- carga ----------
+async function entrar(s) {
+  $('acceso-msg').innerHTML = '<div class="alert ok">Verificando…</div>';
+  try {
+    await recargar();
+    $('quien').textContent = s.email;
+    $('pantalla-login').classList.add('hidden');
+    $('pantalla-panel').classList.remove('hidden');
+    mostrarVista();
+  } catch (e) {
+    if (sesion()) $('acceso-msg').innerHTML = `<div class="alert err">${esc(e.message)}</div>`;
+  }
+}
+async function recargar() {
+  const j = await api('listar');
+  if (!Array.isArray(j.servicios)) throw new Error('El servidor no tiene instalado el panel (falta Admin.gs en Apps Script).');
+  datos = { servicios: j.servicios || [], mensajes: j.mensajes || [] };
+  pintarMensajes(); pintarServicios();
+}
+
+function mostrarVista() {
+  const v = location.hash === '#servicios' ? 'servicios' : 'mensajes';
+  ['mensajes', 'servicios'].forEach(n => $('vista-' + n).classList.toggle('hidden', n !== v));
+  document.querySelectorAll('aside a[data-vista]').forEach(a => a.classList.toggle('active', a.dataset.vista === v));
+}
+window.addEventListener('hashchange', mostrarVista);
+
+// ---------- mensajes ----------
+function pintarMensajes() {
+  const ms = datos.mensajes;
+  const nuevos = ms.filter(m => !esSi(m.leido)).length;
+  $('st-total').textContent = ms.length;
+  $('st-nuevos').textContent = nuevos;
+  $('st-pend').textContent = ms.filter(m => !['respondido', 'archivado'].includes(estadoDe(m))).length;
+  $('badge-nuevos').textContent = nuevos; $('badge-nuevos').hidden = !nuevos;
+
+  const q = $('m-buscar').value.trim().toLowerCase(), est = $('m-estado').value;
+  const lista = ms.filter(m => (!est || estadoDe(m) === est) &&
+    (!q || [m.nombre, m.email, m.asunto, m.mensaje, m.servicio_nombre].join(' ').toLowerCase().includes(q)));
+  $('m-filas').innerHTML = lista.length ? lista.map(m => `
+    <tr class="clickable ${esSi(m.leido) ? '' : 'unread'}" data-id="${esc(m.id)}">
+      <td>${fecha(m.creado_en)}</td>
+      <td>${esc(m.nombre)}<br><small style="color:var(--muted)">${esc(m.email)}</small></td>
+      <td class="corto">${esc(m.servicio_nombre) || '—'}</td>
+      <td class="corto">${esc(m.asunto || m.mensaje)}</td>
+      <td><span class="pill ${estadoDe(m)}">${ESTADOS[estadoDe(m)]}</span></td>
+    </tr>`).join('')
+    : `<tr><td colspan="5"><div class="empty">${ms.length ? 'Ningún mensaje coincide con el filtro.' : 'Todavía no llegaron mensajes desde el formulario.'}</div></td></tr>`;
+}
+$('m-buscar').addEventListener('input', pintarMensajes);
+$('m-estado').addEventListener('change', pintarMensajes);
+$('m-filas').addEventListener('click', (e) => { const tr = e.target.closest('tr[data-id]'); if (tr) abrirMensaje(tr.dataset.id); });
+
+function reemplazar(lista, nuevo) { const i = lista.findIndex(x => String(x.id) === String(nuevo.id)); if (i >= 0) lista[i] = nuevo; else lista.push(nuevo); }
+
+function abrirMensaje(id) {
+  const m = datos.mensajes.find(x => String(x.id) === String(id)); if (!m) return;
+  actual = m;
+  $('mm-titulo').textContent = m.asunto || 'Mensaje de ' + (m.nombre || '');
+  $('mm-datos').innerHTML = `
+    <b>De</b><span>${esc(m.nombre)}</span>
+    <b>Email</b><span><a href="mailto:${esc(m.email)}">${esc(m.email)}</a></span>
+    ${m.telefono ? `<b>Teléfono</b><span><a href="https://wa.me/${esc(String(m.telefono).replace(/\D/g, ''))}" target="_blank" rel="noopener">${esc(m.telefono)}</a></span>` : ''}
+    ${m.servicio_nombre ? `<b>Servicio</b><span>${esc(m.servicio_nombre)}</span>` : ''}
+    <b>Recibido</b><span>${fecha(m.creado_en)}</span>`;
+  $('mm-texto').textContent = m.mensaje || '';
+  $('mm-estado').value = estadoDe(m);
+  $('mm-notas').value = m.notas || '';
+  $('mm-respuesta').value = m.respuesta || '';
+  $('mm-respondido').textContent = m.respondido_en ? fecha(m.respondido_en) : '—';
+  $('modal-mensaje').classList.add('open');
+  if (!esSi(m.leido)) {   // marcar como leído al abrirlo
+    const campos = { leido: true }; if (estadoDe(m) === 'nuevo') campos.estado = 'en_proceso';
+    api('actualizarMensaje', { id: m.id, campos }).then(j => { reemplazar(datos.mensajes, j.mensaje); pintarMensajes(); if (actual && actual.id === m.id) $('mm-estado').value = estadoDe(j.mensaje); }).catch(() => {});
+  }
+}
+$('mm-guardar').addEventListener('click', (e) => ocupado(e.target, async () => {
+  const j = await api('actualizarMensaje', { id: actual.id, campos: { estado: $('mm-estado').value, notas: $('mm-notas').value, respuesta: $('mm-respuesta').value } });
+  reemplazar(datos.mensajes, j.mensaje); actual = j.mensaje; pintarMensajes(); aviso('Cambios guardados.');
+}));
+$('mm-enviar').addEventListener('click', (e) => {
+  const texto = $('mm-respuesta').value.trim();
+  if (!texto) { aviso('Escribí la respuesta antes de enviarla.', 'err'); $('mm-respuesta').focus(); return; }
+  if (!confirm(`¿Enviar la respuesta por mail a ${actual.email}?`)) return;
+  ocupado(e.target, async () => {
+    const j = await api('responderMensaje', { id: actual.id, respuesta: texto });
+    reemplazar(datos.mensajes, j.mensaje); actual = j.mensaje; pintarMensajes();
+    $('mm-estado').value = 'respondido'; $('mm-respondido').textContent = fecha(j.mensaje.respondido_en);
+    aviso('Respuesta enviada a ' + j.mensaje.email + '.');
+  });
+});
+$('mm-borrar').addEventListener('click', (e) => {
+  if (!confirm('¿Borrar este mensaje? No se puede deshacer.')) return;
+  ocupado(e.target, async () => {
+    await api('borrarMensaje', { id: actual.id });
+    datos.mensajes = datos.mensajes.filter(x => x.id !== actual.id); pintarMensajes();
+    $('modal-mensaje').classList.remove('open'); aviso('Mensaje borrado.');
+  });
+});
+
+// ---------- servicios ----------
+function pintarServicios() {
+  const ss = datos.servicios;
+  $('categorias').innerHTML = [...new Set(ss.map(s => s.categoria).filter(Boolean))].map(c => `<option value="${esc(c)}">`).join('');
+  $('s-filas').innerHTML = ss.length ? ss.map(s => `
+    <tr class="clickable" data-id="${esc(s.id)}">
+      <td>${esc(s.orden)}</td>
+      <td>${esc(s.nombre)}</td>
+      <td>${esc(s.categoria) || '—'}</td>
+      <td>${precio(s.precio, s.moneda)}</td>
+      <td>${esc(s.duracion) || '—'}</td>
+      <td><span class="pill ${esSi(s.activo) ? 'on' : 'off'}">${esSi(s.activo) ? 'Visible' : 'Oculto'}</span></td>
+    </tr>`).join('')
+    : '<tr><td colspan="6"><div class="empty">No hay servicios cargados. Tocá "Nuevo servicio".</div></td></tr>';
+}
+$('s-filas').addEventListener('click', (e) => { const tr = e.target.closest('tr[data-id]'); if (tr) abrirServicio(tr.dataset.id); });
+$('btn-nuevo').addEventListener('click', () => abrirServicio(null));
+
+function abrirServicio(id) {
+  const f = $('form-servicio');
+  const s = id ? datos.servicios.find(x => String(x.id) === String(id)) : null;
+  actual = s;
+  f.reset();
+  $('ms-titulo').textContent = s ? 'Editar servicio' : 'Nuevo servicio';
+  $('ms-borrar').hidden = !s;
+  const v = s || { moneda: 'ARS', activo: true, orden: datos.servicios.reduce((m, x) => Math.max(m, Number(x.orden) || 0), 0) + 1 };
+  ['nombre', 'descripcion', 'categoria', 'duracion', 'precio', 'orden', 'imagen_url'].forEach(k => { f.elements[k].value = v[k] ?? ''; });
+  f.elements.moneda.value = v.moneda === 'USD' ? 'USD' : 'ARS';
+  f.elements.activo.checked = esSi(v.activo);
+  $('modal-servicio').classList.add('open');
+  setTimeout(() => f.elements.nombre.focus(), 50);
+}
+$('form-servicio').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const f = e.target;
+  const servicio = {
+    nombre: f.elements.nombre.value, descripcion: f.elements.descripcion.value, categoria: f.elements.categoria.value,
+    duracion: f.elements.duracion.value, precio: f.elements.precio.value || 0, moneda: f.elements.moneda.value,
+    orden: f.elements.orden.value || 0, imagen_url: f.elements.imagen_url.value, activo: f.elements.activo.checked,
+  };
+  if (actual) servicio.id = actual.id;
+  ocupado($('ms-guardar'), async () => {
+    const j = await api('guardarServicio', { servicio });
+    reemplazar(datos.servicios, j.servicio);
+    datos.servicios.sort((a, b) => (Number(a.orden) || 0) - (Number(b.orden) || 0));
+    pintarServicios(); $('modal-servicio').classList.remove('open');
+    aviso(actual ? 'Servicio actualizado. Ya se ve en la web.' : 'Servicio creado. Ya se ve en la web.');
+  });
+});
+$('ms-borrar').addEventListener('click', (e) => {
+  if (!confirm(`¿Borrar "${actual.nombre}"? Si solo querés ocultarlo, destildá "Visible en la web".`)) return;
+  ocupado(e.target, async () => {
+    await api('borrarServicio', { id: actual.id });
+    datos.servicios = datos.servicios.filter(x => x.id !== actual.id); pintarServicios();
+    $('modal-servicio').classList.remove('open'); aviso('Servicio borrado.');
+  });
+});
+
+// ---------- general ----------
+document.querySelectorAll('[data-recargar]').forEach(b => b.addEventListener('click', () => ocupado(b, async () => { await recargar(); aviso('Datos actualizados.'); })));
+document.querySelectorAll('[data-cerrar]').forEach(b => b.addEventListener('click', () => b.closest('.modal-bg').classList.remove('open')));
+document.querySelectorAll('.modal-bg').forEach(m => m.addEventListener('click', (e) => { if (e.target === m) m.classList.remove('open'); }));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.modal-bg.open').forEach(m => m.classList.remove('open')); });
+$('btn-salir').addEventListener('click', (e) => { e.preventDefault(); try { localStorage.removeItem('cmx_admin_email'); } catch (_) {} cerrarSesion(); });
+
+const s0 = sesion();
+if (s0) entrar(s0); else mostrarBotonGoogle();
+</script>
+</body>
+</html>
