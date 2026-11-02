@@ -20,7 +20,7 @@
       <nav>
         <a href="#servicios">Servicios</a>
         <a href="#contacto" class="cta">Contacto</a>
-        <a href="#" id="link-panel" rel="nofollow" target="_blank" hidden>Admin</a>
+        <a href="admin.html" id="link-panel" rel="nofollow" hidden>Admin</a>
         <a href="#" id="link-salir" hidden>Salir</a>
       </nav>
     </div>
@@ -92,8 +92,8 @@
 // ================== CONFIGURACIÓN ==================
 // URL de la app web de Apps Script (termina en /exec). Ver GUIA-PASO-A-PASO.md, paso 2.
 const API_URL = 'https://script.google.com/macros/s/AKfycbzcXjUMtLYcUlwRluieLjvYBkGrIcIPAoJuUQPORFYHnwGOfO9PJ6dUy-1sifI9YmVq/exec';
-// Link al panel admin (AppSheet). Ver paso 8.
-const PANEL_URL = 'https://www.appsheet.com/start/375b4c13-e7f8-4c24-bdfc-6d4e9982ea42';
+// Panel de administración (servicios y mensajes), dentro del mismo sitio.
+const PANEL_URL = 'admin.html';
 // ID de cliente OAuth de Google (Google Cloud > Credenciales). Termina en .apps.googleusercontent.com
 const GOOGLE_CLIENT_ID = '411887691042-vdh480tiln7ome9si22nrsm75tv2993l.apps.googleusercontent.com';
 // Cuentas que ven el botón Admin al iniciar sesión
@@ -101,7 +101,8 @@ const ADMIN_EMAILS = ['creamixds@gmail.com'];
 // ===================================================
 
 // Botón Admin: solo aparece si iniciaste sesión con una cuenta de ADMIN_EMAILS
-// (link "Acceso" en el pie de página). El panel en sí lo protege AppSheet con su propio login.
+// (link "Acceso" en el pie de página). La seguridad real está en Apps Script, que verifica
+// el token de Google en cada pedido del panel (Admin.gs).
 (function () {
   const $ = (id) => document.getElementById(id);
   const link = $('link-panel'), salir = $('link-salir'), acceso = $('link-acceso');
@@ -130,8 +131,9 @@ const ADMIN_EMAILS = ['creamixds@gmail.com'];
       const d = decodificar(resp.credential);
       if (d.email_verified && esAdmin(d.email)) {
         guardar(d.email); pintar();
-        msg.innerHTML = '<div class="alert ok">¡Listo! Ya tenés el botón Admin arriba.</div>';
-        setTimeout(() => modal.classList.remove('open'), 1200);
+        try { sessionStorage.setItem('cmx_admin_token', JSON.stringify({ token: resp.credential, exp: d.exp, email: d.email })); } catch (e) {}
+        msg.innerHTML = '<div class="alert ok">¡Listo! Entrando al panel…</div>';
+        setTimeout(() => { location.href = PANEL_URL; }, 600);
       } else {
         guardar(null); pintar();
         msg.innerHTML = '<div class="alert err">Esta cuenta no tiene acceso al panel.</div>';
@@ -148,7 +150,7 @@ const ADMIN_EMAILS = ['creamixds@gmail.com'];
   }
   acceso.addEventListener('click', (e) => {
     e.preventDefault();
-    if (esAdmin(leer())) { window.open(PANEL_URL, '_blank', 'noopener'); return; }
+    if (esAdmin(leer())) { location.href = PANEL_URL; return; }
     msg.innerHTML = ''; modal.classList.add('open');
     if (GOOGLE_CLIENT_ID.startsWith('PEGAR') || !GOOGLE_CLIENT_ID.endsWith('.apps.googleusercontent.com')) {
       msg.innerHTML = '<div class="alert err">Falta configurar GOOGLE_CLIENT_ID en index.html.</div>'; return;
